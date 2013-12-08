@@ -39,9 +39,9 @@ class Shapes {
   }
 
   webgl.Shader getShader(id) {
-    Element el = document.query('#$id');
+    Element el = document.querySelector('#$id');
     String src = el.text;
-    String type = el.type.split('x-shader/')[1];
+    String type = el.attributes['type'].split('x-shader/')[1];
     webgl.Shader shader;
 
     if (type == 'x-fragment') {
@@ -181,6 +181,6 @@ class Shapes {
 }
 
 void main() {
-  Shapes shapes = new Shapes(document.query('#very-gl'));
+  Shapes shapes = new Shapes(document.querySelector('#very-gl'));
   shapes.render();
 }
