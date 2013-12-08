@@ -13,14 +13,14 @@
         matrices.mv = mat4.create();
         start(canvas, ctx);
     }());
-    
+
     function getShader(ctx, id) {
         var el = document.getElementById(id),
             src = el.textContent.trim(),
             type = el.type.split('x-shader/')[1],
             shader;
-          
-            
+
+
         if (type === 'x-fragment') {
             shader = ctx.createShader(ctx.FRAGMENT_SHADER);
         } else if (type === 'x-vertex') {
@@ -28,39 +28,39 @@
         } else {
             throw new Error('Unknown shader type ' + type);
         }
-        
+
         ctx.shaderSource(shader, src);
         ctx.compileShader(shader);
-        
+
         if (!ctx.getShaderParameter(shader, ctx.COMPILE_STATUS)) {
             throw new Error('Compiling shader failed: ' +
                 ctx.getShaderInfoLog(shader));
         }
-        
+
         return shader;
     }
 
     function initShaders(ctx) {
         var fragmentShader = getShader(ctx, 'shader-fs'),
             vertexShader = getShader(ctx, 'shader-vs');
-        
+
         shaderProgram = ctx.createProgram();
         ctx.attachShader(shaderProgram, vertexShader);
         ctx.attachShader(shaderProgram, fragmentShader);
         ctx.linkProgram(shaderProgram);
-        
+
         if (!ctx.getProgramParameter(shaderProgram, ctx.LINK_STATUS)) {
             throw new Error('Initializing shader program failed.');
         }
-        
+
         ctx.useProgram(shaderProgram);
-        
+
         shaderProgram.vertexPositionAttribute = ctx.getAttribLocation(
             shaderProgram,
             'aVertexPosition'
         );
         ctx.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-        
+
         shaderProgram.pMatrixUniform = ctx.getUniformLocation(
             shaderProgram, 'uPMatrix');
         shaderProgram.mvMatrixUniform = ctx.getUniformLocation(
@@ -110,7 +110,7 @@
         ctx.clear(ctx.COLOR_BUFFER_BIT | ctx.DEPTH_BUFFER_BIT);
 
         console.log('Drawing triangle ...');
-        mat4.perspective(45, ctx.viewportWidth / ctx.viewportHeight, 0.1, 100.0, matrices.p);
+        mat4.perspective(matrices.p, 45, ctx.viewportWidth / ctx.viewportHeight, 0.1, 100.0);
         mat4.identity(matrices.mv);
         mat4.translate(matrices.mv, matrices.mv, [-1.5, 0.0, -7.0]);
 
@@ -139,13 +139,15 @@
         );
         setMatrixUniforms(ctx);
         ctx.drawArrays(ctx.TRIANGLE_STRIP, 0, buffers.square.numItems);
-        
+
         console.log('Done drawing');
     }
 
     function start(canvas, ctx) {
         ctx.viewportWidth = canvas.width;
         ctx.viewportHeight = canvas.height;
+
+        console.log(ctx.viewportWidth, ctx.viewportHeight);
 
         initShaders(ctx);
         initBuffers(ctx);
