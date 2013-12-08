@@ -1,0 +1,20 @@
+{
+  "name": "example01_myself",
+  "version": "0.0.0",
+  "homepage": "https://github.com/tparisi/webgl-lessons",
+  "authors": [
+    "Pascal Hartig <phartig@rdrei.net>"
+  ],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "gl-matrix": "~2.2.0"
+  }
+}
