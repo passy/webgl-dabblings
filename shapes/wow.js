@@ -70,6 +70,7 @@
     function initBuffers(ctx) {
         var squareVertexPositionBuffer,
             triangleVertexPositionBuffer,
+            passyVertexPositionBuffer,
             vertices;
 
         triangleVertexPositionBuffer = ctx.createBuffer();
@@ -96,8 +97,21 @@
         squareVertexPositionBuffer.itemSize = 3;
         squareVertexPositionBuffer.numItems = 4;
 
+        passyVertexPositionBuffer = ctx.createBuffer();
+        ctx.bindBuffer(ctx.ARRAY_BUFFER, passyVertexPositionBuffer);
+        vertices = [
+             0.0,  1.0,  0.0,
+            -1.0, -1.0,  0.0,
+             1.0,  1.0,  1.0,
+             0.0,  1.0,  0.0
+        ];
+        ctx.bufferData(ctx.ARRAY_BUFFER, new Float32Array(vertices), ctx.STATIC_DRAW);
+        passyVertexPositionBuffer.itemSize = 3;
+        passyVertexPositionBuffer.numItems = 4;
+
         buffers.triangle = triangleVertexPositionBuffer;
         buffers.square = squareVertexPositionBuffer;
+        buffers.passy = passyVertexPositionBuffer;
     }
 
     function setMatrixUniforms(ctx) {
@@ -112,7 +126,7 @@
         console.log('Drawing triangle ...');
         mat4.perspective(matrices.p, 45, ctx.viewportWidth / ctx.viewportHeight, 0.1, 100.0);
         mat4.identity(matrices.mv);
-        mat4.translate(matrices.mv, matrices.mv, [-1.5, 0.0, -7.0]);
+        mat4.translate(matrices.mv, matrices.mv, [-1.5, 1.0, -7.0]);
 
         ctx.bindBuffer(ctx.ARRAY_BUFFER, buffers.triangle);
         ctx.vertexAttribPointer(
@@ -139,6 +153,20 @@
         );
         setMatrixUniforms(ctx);
         ctx.drawArrays(ctx.TRIANGLE_STRIP, 0, buffers.square.numItems);
+
+        console.log('Drawing my stuff ...');
+        mat4.translate(matrices.mv, matrices.mv, [-1.5, -2.5, 0.0]);
+        ctx.bindBuffer(ctx.ARRAY_BUFFER, buffers.passy);
+        ctx.vertexAttribPointer(
+            shaderProgram.vertexPositionAttribute,
+            buffers.passy.itemSize,
+            ctx.FLOAT,
+            false,
+            0,
+            0
+        );
+        setMatrixUniforms(ctx);
+        ctx.drawArrays(ctx.TRIANGLE_STRIP, 0, buffers.passy.numItems);
 
         console.log('Done drawing');
     }
