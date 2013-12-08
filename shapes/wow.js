@@ -7,7 +7,7 @@
 
     (function () {
         var canvas = document.getElementById('very-gl');
-        var ctx = canvas.getContext('experimental-webgl');
+        var ctx = canvas.getContext('webgl');
 
         matrices.p = mat4.create();
         matrices.mv = mat4.create();
