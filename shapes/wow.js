@@ -96,7 +96,7 @@
         ctx.bufferData(ctx.ARRAY_BUFFER, new Float32Array(vertices), ctx.STATIC_DRAW);
         squareVertexPositionBuffer.itemSize = 3;
         squareVertexPositionBuffer.numItems = 4;
-
+        
         passyVertexPositionBuffer = ctx.createBuffer();
         ctx.bindBuffer(ctx.ARRAY_BUFFER, passyVertexPositionBuffer);
         vertices = [
@@ -153,7 +153,7 @@
         );
         setMatrixUniforms(ctx);
         ctx.drawArrays(ctx.TRIANGLE_STRIP, 0, buffers.square.numItems);
-
+        
         console.log('Drawing my stuff ...');
         mat4.translate(matrices.mv, matrices.mv, [-1.5, -2.5, 0.0]);
         ctx.bindBuffer(ctx.ARRAY_BUFFER, buffers.passy);

@@ -1,0 +1,7 @@
+name: shapes_dart
+version: 0.0.1
+author: Pascal Hartig
+homepage: http://passy.me
+dependencies:
+  browser: any
+  vector_math: any
