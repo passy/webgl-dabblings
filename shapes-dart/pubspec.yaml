@@ -3,5 +3,5 @@ version: 0.0.1
 author: Pascal Hartig
 homepage: http://passy.me
 dependencies:
-  browser: any
-  vector_math: any
+  browser: 0.9.0
+  vector_math: 1.3.5
