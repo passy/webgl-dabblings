@@ -22,9 +22,12 @@ class Shapes {
 
   v.Matrix4 _pMatrix;
   v.Matrix4 _mvMatrix;
+  List<v.Matrix4> _mvMatrixStack = [];
 
   int _aVertexPosition;
   int _aVertexColor;
+  int _rTriangle = 0;
+  int _rSquare = 0;
   webgl.UniformLocation _uPMatrix;
   webgl.UniformLocation _uMVMatrix;
 
@@ -169,6 +172,25 @@ class Shapes {
     _gl.uniformMatrix4fv(_uMVMatrix, false, tmpList);
   }
 
+  void _mvPushMatrix() {
+    // Object allocation in the render loop. What could possibly go wrong?
+    _mvMatrixStack.add(_mvMatrix.clone());
+  }
+
+  void _mvPopMatrix() {
+    if (_mvMatrixStack.length == 0) {
+      throw new StateError('Invalid popMatrix state.');
+    }
+
+    _mvMatrix = _mvMatrixStack.removeLast();
+  }
+
+  void tick([num delta = 0]) {
+    render();
+    animate(delta);
+    window.animationFrame.then(tick);
+  }
+
   void render() {
     _gl.viewport(0, 0, _viewportWidth, _viewportHeight);
     _gl.clear(webgl.RenderingContext.COLOR_BUFFER_BIT | webgl.RenderingContext.DEPTH_BUFFER_BIT);
@@ -177,6 +199,9 @@ class Shapes {
 
     _mvMatrix = new v.Matrix4.identity();
     _mvMatrix.translate(new v.Vector3(-1.5, 0.0, -7.0));
+
+    _mvPushMatrix();
+    _mvMatrix.rotateX(v.degrees2radians * _rTriangle);
 
     // draw triangle
     _gl.bindBuffer(
@@ -204,9 +229,14 @@ class Shapes {
     _setMatrixUniforms();
     // triangles, start at 0, total 3
     _gl.drawArrays(webgl.RenderingContext.TRIANGLES, 0, 3);
+    _mvPopMatrix();
 
     // draw square
     _mvMatrix.translate(new v.Vector3(3.0, 0.0, 0.0));
+
+    // Spin it like a panda bear
+    _mvPushMatrix();
+    _mvMatrix.rotateY(v.degrees2radians * _rSquare);
 
     _gl.bindBuffer(
         webgl.RenderingContext.ARRAY_BUFFER,
@@ -233,10 +263,17 @@ class Shapes {
     _setMatrixUniforms();
     // square, start at 0, total 4
     _gl.drawArrays(webgl.RenderingContext.TRIANGLE_STRIP, 0, 4);
+
+    _mvPopMatrix();
+  }
+
+  void animate(num delta) {
+    _rTriangle = ((90 * delta) / 1000) % 360;
+    _rSquare = ((75 * delta) / 1000) % 360;
   }
 }
 
 void main() {
   Shapes shapes = new Shapes(document.querySelector('#very-gl'));
-  shapes.render();
+  shapes.tick();
 }
