@@ -4,6 +4,7 @@ import 'dart:html';
 import 'package:vector_math/vector_math.dart' as v;
 import 'dart:web_gl' as webgl;
 import 'dart:typed_data';
+import 'dart:collection' show Queue;
 
 
 class Shapes {
@@ -18,14 +19,14 @@ class Shapes {
   webgl.Buffer _cubeVertexTextureCoordBuffer;
   webgl.Buffer _cubeVertexIndexBuffer;
 
-  webgl.Texture _neheTexture;
+  webgl.Texture _yoTexture;
 
   int _viewportWidth;
   int _viewportHeight;
 
   v.Matrix4 _pMatrix;
   v.Matrix4 _mvMatrix;
-  Queue<v.Matrix4> _mvMatrixStack = [];
+  Queue<v.Matrix4> _mvMatrixStack = new Queue();
 
   int _aVertexPosition;
   int _aTextureCoord;
@@ -33,7 +34,6 @@ class Shapes {
   webgl.UniformLocation _uMVMatrix;
   webgl.UniformLocation _samplerUniform;
 
-  double _rPyramid = 0.0;
   double _rxCubeRot = 0.0;
   double _ryCubeRot = 0.0;
   double _rzCubeRot = 0.0;
@@ -100,26 +100,26 @@ class Shapes {
     _aVertexPosition = _gl.getAttribLocation(_shaderProgram, 'aVertexPosition');
     _gl.enableVertexAttribArray(_aVertexPosition);
 
-    _aTextureCoord = _gl.getAttribLocation(_shaderProgram, 'aVertexColor');
+    _aTextureCoord = _gl.getAttribLocation(_shaderProgram, 'aTextureCoord');
     _gl.enableVertexAttribArray(_aTextureCoord);
 
     _uPMatrix = _gl.getUniformLocation(_shaderProgram, 'uPMatrix');
     _uMVMatrix = _gl.getUniformLocation(_shaderProgram, 'uMVMatrix');
+    _samplerUniform = _gl.getUniformLocation(_shaderProgram, 'uSampler');
   }
 
   void _initTexture() {
-    _neheTexture = _gl.createTexture();
+    _yoTexture = _gl.createTexture();
     var image = new Element.img();
     image.onLoad.listen((e) {
       _handleLoadedTexture(image);
       start();
     });
-    image.setAttribute('src', 'nehe.gif');
+    image.setAttribute('src', 'yeoman.png');
   }
 
   void _handleLoadedTexture(ImageElement image) {
-    _gl.bindTexture(webgl.RenderingContext.TEXTURE_2D, _neheTexture);
-    _gl.pixelStorei(webgl.RenderingContext.UNPACK_FLIP_Y_WEBGL, 1);
+    _gl.bindTexture(webgl.RenderingContext.TEXTURE_2D, _yoTexture);
     _gl.texImage2DImage(
         webgl.RenderingContext.TEXTURE_2D,
         0,
@@ -130,69 +130,17 @@ class Shapes {
     _gl.texParameteri(
         webgl.RenderingContext.TEXTURE_2D,
         webgl.RenderingContext.TEXTURE_MAG_FILTER,
-        webgl.RenderingContext.NEAREST);
+        webgl.RenderingContext.LINEAR);
     _gl.texParameteri(
         webgl.RenderingContext.TEXTURE_2D,
         webgl.RenderingContext.TEXTURE_MIN_FILTER,
-        webgl.RenderingContext.NEAREST);
+        webgl.RenderingContext.LINEAR_MIPMAP_NEAREST);
+    _gl.generateMipmap(webgl.RenderingContext.TEXTURE_2D);
     _gl.bindTexture(webgl.RenderingContext.TEXTURE_2D, null);
   }
 
   void _initBuffers() {
     List<double> vertices;
-
-    // create triangle
-    _pyramidVertexPositionBuffer = _gl.createBuffer();
-    _gl.bindBuffer(webgl.RenderingContext.ARRAY_BUFFER, _pyramidVertexPositionBuffer);
-
-    vertices = [
-        // Front face
-        0.0,  1.0,  0.0,
-        -1.0, -1.0,  1.0,
-        1.0, -1.0,  1.0,
-        // Right face
-        0.0,  1.0,  0.0,
-        1.0, -1.0,  1.0,
-        1.0, -1.0, -1.0,
-        // Back face
-        0.0,  1.0,  0.0,
-        1.0, -1.0, -1.0,
-        -1.0, -1.0, -1.0,
-        // Left face
-        0.0,  1.0,  0.0,
-        -1.0, -1.0, -1.0,
-        -1.0, -1.0,  1.0
-    ];
-    _gl.bufferDataTyped(
-        webgl.RenderingContext.ARRAY_BUFFER,
-        new Float32List.fromList(vertices),
-        webgl.RenderingContext.STATIC_DRAW);
-
-    _pyramidVertexColorBuffer = _gl.createBuffer();
-    _gl.bindBuffer(webgl.RenderingContext.ARRAY_BUFFER, _pyramidVertexColorBuffer);
-    List<double> colors1 = [
-        // Front face
-        1.0, 0.0, 0.0, 1.0,
-        0.0, 1.0, 0.0, 1.0,
-        0.0, 0.0, 1.0, 1.0,
-        // Right face
-        1.0, 0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0, 1.0,
-        0.0, 1.0, 0.0, 1.0,
-        // Back face
-        1.0, 0.0, 0.0, 1.0,
-        0.0, 1.0, 0.0, 1.0,
-        0.0, 0.0, 1.0, 1.0,
-        // Left face
-        1.0, 0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0, 1.0,
-        0.0, 1.0, 0.0, 1.0
-    ];
-    _gl.bufferDataTyped(
-        webgl.RenderingContext.ARRAY_BUFFER,
-        new Float32List.fromList(colors1),
-        webgl.RenderingContext.STATIC_DRAW
-    );
 
     // create square
     _cubeVertexPositionBuffer = _gl.createBuffer();
@@ -334,44 +282,9 @@ class Shapes {
     _gl.viewport(0, 0, _viewportWidth, _viewportHeight);
     _gl.clear(webgl.RenderingContext.COLOR_BUFFER_BIT | webgl.RenderingContext.DEPTH_BUFFER_BIT);
 
-    _pMatrix = v.makePerspectiveMatrix(v.radians(45.0), _viewportWidth / _viewportHeight, 0.1, 100.0);
-
     _mvMatrix = new v.Matrix4.identity();
-    _mvMatrix.translate(new v.Vector3(-1.5, 0.0, -8.0));
-
-    _mvPushMatrix();
-    _mvMatrix.rotateY(v.degrees2radians * _rPyramid);
-
-    // draw triangle
-    _gl.bindBuffer(
-        webgl.RenderingContext.ARRAY_BUFFER,
-        _pyramidVertexPositionBuffer);
-    _gl.vertexAttribPointer(
-        _aVertexPosition,
-        3,
-        webgl.RenderingContext.FLOAT,
-        false,
-        0,
-        0);
-
-    _gl.bindBuffer(
-      webgl.RenderingContext.ARRAY_BUFFER,
-      _pyramidVertexColorBuffer);
-    _gl.vertexAttribPointer(
-      _aTextureCoord,
-      4,
-      webgl.RenderingContext.FLOAT,
-      false,
-      0,
-      0);
-
-    _setMatrixUniforms();
-    // triangles, start at 0, total 3
-    _gl.drawArrays(webgl.RenderingContext.TRIANGLES, 0, 12);
-    _mvPopMatrix();
-
-    // draw cube
-    _mvMatrix.translate(new v.Vector3(3.0, 0.0, 0.0));
+    _mvMatrix.translate(new v.Vector3(0.0, 0.0, -8.0));
+    _pMatrix = v.makePerspectiveMatrix(v.radians(45.0), _viewportWidth / _viewportHeight, 0.1, 100.0);
 
     // Spin it like a panda bear
     _mvPushMatrix();
@@ -401,7 +314,7 @@ class Shapes {
         0);
 
     _gl.activeTexture(webgl.RenderingContext.TEXTURE0);
-    _gl.bindTexture(webgl.RenderingContext.TEXTURE_2D, _neheTexture);
+    _gl.bindTexture(webgl.RenderingContext.TEXTURE_2D, _yoTexture);
     _gl.uniform1i(_samplerUniform, 0);
 
     _gl.bindBuffer(webgl.RenderingContext.ELEMENT_ARRAY_BUFFER, _cubeVertexIndexBuffer);
@@ -417,7 +330,6 @@ class Shapes {
   }
 
   void animate(num delta) {
-    _rPyramid = ((90 * delta) / 1000) % 360;
     _rxCubeRot = ((80 * delta) / 1000) % 360;
     _ryCubeRot = ((70 * delta) / 1000) % 360;
     _rzCubeRot = ((60 * delta) / 1000) % 360;
