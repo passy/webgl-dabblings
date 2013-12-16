@@ -15,8 +15,10 @@ class Shapes {
   webgl.Buffer _pyramidVertexColorBuffer;
 
   webgl.Buffer _cubeVertexPositionBuffer;
-  webgl.Buffer _cubeVertexColorBuffer;
+  webgl.Buffer _cubeVertexTextureCoordBuffer;
   webgl.Buffer _cubeVertexIndexBuffer;
+
+  webgl.Texture _neheTexture;
 
   int _viewportWidth;
   int _viewportHeight;
@@ -26,12 +28,15 @@ class Shapes {
   Queue<v.Matrix4> _mvMatrixStack = [];
 
   int _aVertexPosition;
-  int _aVertexColor;
+  int _aTextureCoord;
   webgl.UniformLocation _uPMatrix;
   webgl.UniformLocation _uMVMatrix;
+  webgl.UniformLocation _samplerUniform;
 
   double _rPyramid = 0.0;
-  double _rCube = 0.0;
+  double _rxCubeRot = 0.0;
+  double _ryCubeRot = 0.0;
+  double _rzCubeRot = 0.0;
 
   Shapes(CanvasElement canvas) {
     _viewportWidth = canvas.width;
@@ -41,6 +46,7 @@ class Shapes {
 
     _initShaders();
     _initBuffers();
+    _initTexture();
 
     _gl.clearColor(0.6, 0.4, 0.6, 1.0);
     _gl.enable(webgl.RenderingContext.DEPTH_TEST);
@@ -94,11 +100,42 @@ class Shapes {
     _aVertexPosition = _gl.getAttribLocation(_shaderProgram, 'aVertexPosition');
     _gl.enableVertexAttribArray(_aVertexPosition);
 
-    _aVertexColor = _gl.getAttribLocation(_shaderProgram, 'aVertexColor');
-    _gl.enableVertexAttribArray(_aVertexColor);
+    _aTextureCoord = _gl.getAttribLocation(_shaderProgram, 'aVertexColor');
+    _gl.enableVertexAttribArray(_aTextureCoord);
 
     _uPMatrix = _gl.getUniformLocation(_shaderProgram, 'uPMatrix');
     _uMVMatrix = _gl.getUniformLocation(_shaderProgram, 'uMVMatrix');
+  }
+
+  void _initTexture() {
+    _neheTexture = _gl.createTexture();
+    var image = new Element.img();
+    image.onLoad.listen((e) {
+      _handleLoadedTexture(image);
+      start();
+    });
+    image.setAttribute('src', 'nehe.gif');
+  }
+
+  void _handleLoadedTexture(ImageElement image) {
+    _gl.bindTexture(webgl.RenderingContext.TEXTURE_2D, _neheTexture);
+    _gl.pixelStorei(webgl.RenderingContext.UNPACK_FLIP_Y_WEBGL, 1);
+    _gl.texImage2DImage(
+        webgl.RenderingContext.TEXTURE_2D,
+        0,
+        webgl.RenderingContext.RGBA,
+        webgl.RenderingContext.RGBA,
+        webgl.RenderingContext.UNSIGNED_BYTE,
+        image);
+    _gl.texParameteri(
+        webgl.RenderingContext.TEXTURE_2D,
+        webgl.RenderingContext.TEXTURE_MAG_FILTER,
+        webgl.RenderingContext.NEAREST);
+    _gl.texParameteri(
+        webgl.RenderingContext.TEXTURE_2D,
+        webgl.RenderingContext.TEXTURE_MIN_FILTER,
+        webgl.RenderingContext.NEAREST);
+    _gl.bindTexture(webgl.RenderingContext.TEXTURE_2D, null);
   }
 
   void _initBuffers() {
@@ -203,28 +240,50 @@ class Shapes {
         new Float32List.fromList(vertices),
         webgl.RenderingContext.STATIC_DRAW);
 
-    _cubeVertexColorBuffer = _gl.createBuffer();
-    _gl.bindBuffer(webgl.RenderingContext.ARRAY_BUFFER, _cubeVertexColorBuffer);
-    List<List<double>> colors2 = [
-        [1.0, 0.0, 0.0, 1.0],  // Front face
-        [1.0, 1.0, 0.0, 1.0],  // Back face
-        [0.0, 1.0, 0.0, 1.0],  // Top face
-        [1.0, 0.5, 0.5, 1.0],  // Bottom face
-        [1.0, 0.0, 1.0, 1.0],  // Right face
-        [0.0, 0.0, 1.0, 1.0],  // Left face
-    ];
+    _cubeVertexTextureCoordBuffer = _gl.createBuffer();
+    _gl.bindBuffer(webgl.RenderingContext.ARRAY_BUFFER, _cubeVertexTextureCoordBuffer);
+    vertices = [
+        // Front face
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0,
 
-    // each cube face (6 faces for one cube) consists of 4 points of the same color
-    // where each color has 4 components RGBA therefore I need 4 * 4 * 6 long list of doubles
-    List<double> unpackedColors = new List.generate(4 * 4 * colors2.length, (int index) {
-      // index ~/ 16 returns 0-5
-      // index % 4 returns 0-3 that's color component for each color
-      return colors2[index ~/ 16][index % 4];
-    }, growable: false);
+        // Back face
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0,
+        0.0, 0.0,
+
+        // Top face
+        0.0, 1.0,
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+
+        // Bottom face
+        1.0, 1.0,
+        0.0, 1.0,
+        0.0, 0.0,
+        1.0, 0.0,
+
+        // Right face
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0,
+        0.0, 0.0,
+
+        // Left face
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0,
+    ];
     _gl.bufferDataTyped(
         webgl.RenderingContext.ARRAY_BUFFER,
-        new Float32List.fromList(unpackedColors),
+        new Float32List.fromList(vertices),
         webgl.RenderingContext.STATIC_DRAW);
+
 
     _cubeVertexIndexBuffer = _gl.createBuffer();
     _gl.bindBuffer(webgl.RenderingContext.ELEMENT_ARRAY_BUFFER, _cubeVertexIndexBuffer);
@@ -299,7 +358,7 @@ class Shapes {
       webgl.RenderingContext.ARRAY_BUFFER,
       _pyramidVertexColorBuffer);
     _gl.vertexAttribPointer(
-      _aVertexColor,
+      _aTextureCoord,
       4,
       webgl.RenderingContext.FLOAT,
       false,
@@ -316,7 +375,9 @@ class Shapes {
 
     // Spin it like a panda bear
     _mvPushMatrix();
-    _mvMatrix.rotate(new v.Vector3(1.0, 1.0, 1.0), v.degrees2radians * _rCube);
+    _mvMatrix.rotateX(v.degrees2radians * _rxCubeRot);
+    _mvMatrix.rotateY(v.degrees2radians * _ryCubeRot);
+    _mvMatrix.rotateZ(v.degrees2radians * _rzCubeRot);
 
     _gl.bindBuffer(
         webgl.RenderingContext.ARRAY_BUFFER,
@@ -329,16 +390,19 @@ class Shapes {
         0,
         0);
 
-    _gl.bindBuffer(
-        webgl.RenderingContext.ARRAY_BUFFER,
-        _cubeVertexColorBuffer);
+    // texture
+    _gl.bindBuffer(webgl.RenderingContext.ARRAY_BUFFER, _cubeVertexTextureCoordBuffer);
     _gl.vertexAttribPointer(
-        _aVertexColor,
-        4,
+        _aTextureCoord,
+        2,
         webgl.RenderingContext.FLOAT,
         false,
         0,
         0);
+
+    _gl.activeTexture(webgl.RenderingContext.TEXTURE0);
+    _gl.bindTexture(webgl.RenderingContext.TEXTURE_2D, _neheTexture);
+    _gl.uniform1i(_samplerUniform, 0);
 
     _gl.bindBuffer(webgl.RenderingContext.ELEMENT_ARRAY_BUFFER, _cubeVertexIndexBuffer);
 
@@ -354,11 +418,16 @@ class Shapes {
 
   void animate(num delta) {
     _rPyramid = ((90 * delta) / 1000) % 360;
-    _rCube = ((-75 * delta) / 1000) % 360;
+    _rxCubeRot = ((80 * delta) / 1000) % 360;
+    _ryCubeRot = ((70 * delta) / 1000) % 360;
+    _rzCubeRot = ((60 * delta) / 1000) % 360;
+  }
+
+  void start() {
+    tick();
   }
 }
 
 void main() {
   Shapes shapes = new Shapes(document.querySelector('#very-gl'));
-  shapes.tick();
 }
