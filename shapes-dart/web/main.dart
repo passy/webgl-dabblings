@@ -36,7 +36,11 @@ class Shapes {
 
   double _rxCubeRot = 0.0;
   double _ryCubeRot = 0.0;
-  double _rzCubeRot = 0.0;
+  double _rzCubePos = -5.0;
+  double _xSpeed = 0.0;
+  double _ySpeed = 0.0;
+
+  int _filter = 0;
 
   Shapes(CanvasElement canvas) {
     _viewportWidth = canvas.width;
@@ -120,6 +124,7 @@ class Shapes {
 
   void _handleLoadedTexture(ImageElement image) {
     _gl.bindTexture(webgl.RenderingContext.TEXTURE_2D, _yoTexture);
+    _gl.pixelStorei(webgl.RenderingContext.UNPACK_FLIP_Y_WEBGL, 1);
     _gl.texImage2DImage(
         webgl.RenderingContext.TEXTURE_2D,
         0,
@@ -283,14 +288,13 @@ class Shapes {
     _gl.clear(webgl.RenderingContext.COLOR_BUFFER_BIT | webgl.RenderingContext.DEPTH_BUFFER_BIT);
 
     _mvMatrix = new v.Matrix4.identity();
-    _mvMatrix.translate(new v.Vector3(0.0, 0.0, -8.0));
+    _mvMatrix.translate(new v.Vector3(0.0, 0.0, _rzCubePos));
     _pMatrix = v.makePerspectiveMatrix(v.radians(45.0), _viewportWidth / _viewportHeight, 0.1, 100.0);
 
     // Spin it like a panda bear
     _mvPushMatrix();
     _mvMatrix.rotateX(v.degrees2radians * _rxCubeRot);
     _mvMatrix.rotateY(v.degrees2radians * _ryCubeRot);
-    _mvMatrix.rotateZ(v.degrees2radians * _rzCubeRot);
 
     _gl.bindBuffer(
         webgl.RenderingContext.ARRAY_BUFFER,
@@ -330,9 +334,8 @@ class Shapes {
   }
 
   void animate(num delta) {
-    _rxCubeRot = ((80 * delta) / 1000) % 360;
-    _ryCubeRot = ((70 * delta) / 1000) % 360;
-    _rzCubeRot = ((60 * delta) / 1000) % 360;
+    _rxCubeRot = ((_xSpeed * delta) / 1000) % 360;
+    _ryCubeRot = ((_ySpeed * delta) / 1000) % 360;
   }
 
   void start() {
