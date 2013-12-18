@@ -7,6 +7,16 @@ import 'dart:typed_data';
 import 'dart:collection' show Queue;
 
 
+class TexturePair {
+  ImageElement image;
+  webgl.Texture texture;
+
+  TexturePair(webgl.RenderingContext context, this.image) {
+    this.texture = context.createTexture();
+  }
+}
+
+
 class Shapes {
   CanvasElement _canvas;
   webgl.RenderingContext _gl;
@@ -19,7 +29,7 @@ class Shapes {
   webgl.Buffer _cubeVertexTextureCoordBuffer;
   webgl.Buffer _cubeVertexIndexBuffer;
 
-  webgl.Texture _yoTexture;
+  List<TexturePair> _texturePairs = [];
 
   int _viewportWidth;
   int _viewportHeight;
@@ -50,7 +60,7 @@ class Shapes {
 
     _initShaders();
     _initBuffers();
-    _initTexture();
+    _initTextures();
 
     _gl.clearColor(0.6, 0.4, 0.6, 1.0);
     _gl.enable(webgl.RenderingContext.DEPTH_TEST);
@@ -112,36 +122,50 @@ class Shapes {
     _samplerUniform = _gl.getUniformLocation(_shaderProgram, 'uSampler');
   }
 
-  void _initTexture() {
-    _yoTexture = _gl.createTexture();
-    var image = new Element.img();
-    image.onLoad.listen((e) {
-      _handleLoadedTexture(image);
-      start();
+  void _initTextures() {
+    final List<String> textures = ['yeoman', 'grunt', 'bower'];
+    int countdown = textures.length;
+
+    var onLoadHandler = ((e) {
+      if (--countdown == 0) {
+        _handleLoadedTexture();
+        start();
+      }
     });
-    image.setAttribute('src', 'yeoman.png');
+
+    for (String name in textures) {
+      ImageElement image = new Element.img();
+      image.setAttribute('src', '$name.png');
+      image.onLoad.listen(onLoadHandler);
+
+      _texturePairs.add(new TexturePair(_gl, image));
+    }
   }
 
-  void _handleLoadedTexture(ImageElement image) {
-    _gl.bindTexture(webgl.RenderingContext.TEXTURE_2D, _yoTexture);
-    _gl.pixelStorei(webgl.RenderingContext.UNPACK_FLIP_Y_WEBGL, 1);
-    _gl.texImage2DImage(
-        webgl.RenderingContext.TEXTURE_2D,
-        0,
-        webgl.RenderingContext.RGBA,
-        webgl.RenderingContext.RGBA,
-        webgl.RenderingContext.UNSIGNED_BYTE,
-        image);
-    _gl.texParameteri(
-        webgl.RenderingContext.TEXTURE_2D,
-        webgl.RenderingContext.TEXTURE_MAG_FILTER,
-        webgl.RenderingContext.LINEAR);
-    _gl.texParameteri(
-        webgl.RenderingContext.TEXTURE_2D,
-        webgl.RenderingContext.TEXTURE_MIN_FILTER,
-        webgl.RenderingContext.LINEAR_MIPMAP_NEAREST);
-    _gl.generateMipmap(webgl.RenderingContext.TEXTURE_2D);
-    _gl.bindTexture(webgl.RenderingContext.TEXTURE_2D, null);
+  void _handleLoadedTexture() {
+    for (final TexturePair pair in _texturePairs) {
+      _gl.bindTexture(webgl.RenderingContext.TEXTURE_2D, pair.texture);
+      _gl.pixelStorei(webgl.RenderingContext.UNPACK_FLIP_Y_WEBGL, 1);
+
+      _gl.texImage2DImage(
+          webgl.RenderingContext.TEXTURE_2D,
+          0,
+          webgl.RenderingContext.RGBA,
+          webgl.RenderingContext.RGBA,
+          webgl.RenderingContext.UNSIGNED_BYTE,
+          pair.image);
+      _gl.texParameteri(
+          webgl.RenderingContext.TEXTURE_2D,
+          webgl.RenderingContext.TEXTURE_MAG_FILTER,
+          webgl.RenderingContext.LINEAR);
+      _gl.texParameteri(
+          webgl.RenderingContext.TEXTURE_2D,
+          webgl.RenderingContext.TEXTURE_MIN_FILTER,
+          webgl.RenderingContext.LINEAR_MIPMAP_NEAREST);
+
+      _gl.generateMipmap(webgl.RenderingContext.TEXTURE_2D);
+      _gl.bindTexture(webgl.RenderingContext.TEXTURE_2D, null);
+    }
   }
 
   void _initBuffers() {
