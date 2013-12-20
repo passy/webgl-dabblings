@@ -50,7 +50,7 @@ class Shapes {
   double _xSpeed = 0.0;
   double _ySpeed = 0.0;
 
-  int _filter = 0;
+  int _texture = 0;
 
   Shapes(CanvasElement canvas) {
     _viewportWidth = canvas.width;
@@ -64,6 +64,10 @@ class Shapes {
 
     _gl.clearColor(0.6, 0.4, 0.6, 1.0);
     _gl.enable(webgl.RenderingContext.DEPTH_TEST);
+  }
+
+  void cycleTexture() {
+    _texture = (_texture + 1) % _texturePairs.length;
   }
 
   webgl.Shader getShader(id) {
@@ -342,7 +346,7 @@ class Shapes {
         0);
 
     _gl.activeTexture(webgl.RenderingContext.TEXTURE0);
-    _gl.bindTexture(webgl.RenderingContext.TEXTURE_2D, _yoTexture);
+    _gl.bindTexture(webgl.RenderingContext.TEXTURE_2D, _texturePairs[_texture].texture);
     _gl.uniform1i(_samplerUniform, 0);
 
     _gl.bindBuffer(webgl.RenderingContext.ELEMENT_ARRAY_BUFFER, _cubeVertexIndexBuffer);
@@ -369,4 +373,12 @@ class Shapes {
 
 void main() {
   Shapes shapes = new Shapes(document.querySelector('#very-gl'));
+
+  document.onKeyDown.listen((e) {
+    String x = 'x';
+    if (e.keyCode == 'F'.codeUnitAt(0)) {
+      print('Cycling through textures.');
+      shapes.cycleTexture();
+    }
+  });
 }
