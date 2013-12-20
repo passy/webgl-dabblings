@@ -1,10 +1,11 @@
 library shapes;
 
 import 'dart:html';
+import 'dart:math' as math;
 import 'package:vector_math/vector_math.dart' as v;
 import 'dart:web_gl' as webgl;
 import 'dart:typed_data';
-import 'dart:collection' show Queue;
+import 'dart:collection' show Queue, HashSet;
 
 
 class TexturePair {
@@ -30,6 +31,7 @@ class Shapes {
   webgl.Buffer _cubeVertexIndexBuffer;
 
   List<TexturePair> _texturePairs = [];
+  Set<int> _keysPressed = new HashSet<int>();
 
   int _viewportWidth;
   int _viewportHeight;
@@ -68,6 +70,14 @@ class Shapes {
 
   void cycleTexture() {
     _texture = (_texture + 1) % _texturePairs.length;
+  }
+
+  void keyPressed(final int code) {
+    this._keysPressed.add(code);
+  }
+
+  void keyReleased(final int code) {
+    this._keysPressed.remove(code);
   }
 
   webgl.Shader getShader(id) {
@@ -308,6 +318,7 @@ class Shapes {
   void tick([num delta = 0]) {
     render();
     animate(delta);
+    handleKeys();
     window.animationFrame.then(tick);
   }
 
@@ -366,19 +377,46 @@ class Shapes {
     _ryCubeRot = ((_ySpeed * delta) / 1000) % 360;
   }
 
+  void handleKeys() {
+    if (_keysPressed.contains(KeyCode.UP)) {
+      _xSpeed += 0.3;
+    }
+    if (_keysPressed.contains(KeyCode.DOWN)) {
+      _xSpeed = math.max(0, _xSpeed - 0.1);
+    }
+    if (_keysPressed.contains(KeyCode.RIGHT)) {
+      _ySpeed += 0.3;
+    }
+    if (_keysPressed.contains(KeyCode.LEFT)) {
+      _ySpeed = math.max(0, _ySpeed - 0.1);
+    }
+    if (_keysPressed.contains(KeyCode.Q)) {
+      _rzCubePos += 0.1;
+    }
+    if (_keysPressed.contains(KeyCode.A)) {
+      _rzCubePos -= 0.1;
+    }
+  }
+
   void start() {
     tick();
   }
 }
 
 void main() {
-  Shapes shapes = new Shapes(document.querySelector('#very-gl'));
+  final Shapes shapes = new Shapes(document.querySelector('#very-gl'));
 
   document.onKeyDown.listen((e) {
-    String x = 'x';
-    if (e.keyCode == 'F'.codeUnitAt(0)) {
-      print('Cycling through textures.');
+    if (e.keyCode == KeyCode.F) {
       shapes.cycleTexture();
+    } else {
+      shapes.keyPressed(e.keyCode);
+    }
+  });
+
+  document.onKeyUp.listen((e) {
+    if (e.keyCode != KeyCode.F) {
+      shapes.keyReleased(e.keyCode);
     }
   });
 }
